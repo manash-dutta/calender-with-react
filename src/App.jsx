@@ -1,9 +1,12 @@
-import React from 'react'
+import CalenderApp from "./Components/CalenderApp";
+import "./Components/CalenderApp.css"
 
 const App = () => {
   return (
-    <div>App</div>
-  )
-}
+    <div className="container">
+      <CalenderApp /> 
+    </div>
+  );
+};
 
-export default App
+export default App;
