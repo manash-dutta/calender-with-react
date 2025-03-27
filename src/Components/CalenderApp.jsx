@@ -25,6 +25,7 @@ const CalenderApp = () => {
   const [events, setEvents] = useState([]);
   const [eventTime, setEventTime] = useState({ hours: "00", minutes: "00" });
   const [eventText, setEventText] = useState("");
+  const [editingEvent, setEditingEvent] = useState(null);
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
@@ -60,23 +61,70 @@ const CalenderApp = () => {
       setShowEventPopup(true);
       setEventTime({ hours: "00", minutes: "00" });
       setEventText("");
+      setEditingEvent(null);
     }
   };
 
   const handleEventSubmit = () => {
     const newEvent = {
+      id: editingEvent ? editingEvent.id : Date.now(),
       date: selectedDate,
-      time: `${eventTime.hours.padStart(2, "0")} : ${eventTime.minutes.padStart(
-        2,
-        "0"
-      )}`,
+      time: `${String(eventTime.hours).padStart(2, "0")}:${String(
+        eventTime.minutes
+      ).padStart(2, "0")}`,
       text: eventText,
     };
 
-    setEvents([...events, newEvent]);
+    let updatedEvents = [...events];
+
+    if (editingEvent) {
+      updatedEvents = updatedEvents.map((event) =>
+        event.id === editingEvent.id ? newEvent : event
+      );
+    } else {
+      updatedEvents.push(newEvent);
+    }
+
+    updatedEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    setEvents(updatedEvents);
     setEventTime({ hours: "00", minutes: "00" });
     setEventText("");
     setShowEventPopup(false);
+    setEditingEvent(null);
+  };
+
+  const handleEditEvent = (event) => {
+    setSelectedDate(new Date(event.date));
+    setEventTime({
+      hours: Number(event.time.split(":")[0]),
+      minutes: Number(event.time.split(":")[1]),
+    });
+    setEventText(event.text);
+    setEditingEvent(event);
+    setShowEventPopup(true);
+  };
+
+  const handleDeleteEvent = (eventId) => {
+    setEvents(events.filter((event) => event.id !== eventId));
+  };
+
+  const handleTimeChange = (e) => {
+    let { name, value } = e.target;
+    value = Number(value);
+
+    if (name === "hours") {
+      if (value < 0) value = 0;
+      if (value > 23) value = 23;
+    } else if (name === "minutes") {
+      if (value < 0) value = 0;
+      if (value > 59) value = 59;
+    }
+
+    setEventTime((prevTime) => ({
+      ...prevTime,
+      [name]: String(value).padStart(2, "0"),
+    }));
   };
 
   return (
@@ -129,9 +177,7 @@ const CalenderApp = () => {
                 max={24}
                 className="hours"
                 value={eventTime.hours}
-                onChange={(e) =>
-                  setEventTime({ ...eventTime, hours: e.target.value })
-                }
+                onChange={handleTimeChange}
               />
               <input
                 type="number"
@@ -140,9 +186,7 @@ const CalenderApp = () => {
                 max={60}
                 className="minutes"
                 value={eventTime.minutes}
-                onChange={(e) =>
-                  setEventTime({ ...eventTime, minutes: e.target.value })
-                }
+                onChange={handleTimeChange}
               />
             </div>
             <textarea
@@ -152,7 +196,13 @@ const CalenderApp = () => {
                 e.target.value.length <= 60 && setEventText(e.target.value)
               }
             ></textarea>
-            <button className="event-popup-btn">Add Event</button>
+            <button
+              className="event-popup-btn"
+              onClick={handleEventSubmit}
+              disabled={!eventText.trim()}
+            >
+              {editingEvent ? "Update Event" : "Add Event"}
+            </button>
             <button
               className="close-event-popup"
               onClick={() => setShowEventPopup(false)}
@@ -161,17 +211,28 @@ const CalenderApp = () => {
             </button>
           </div>
         )}
-        <div className="event">
-          <div className="event-date-wrapper">
-            <div className="event-date">Jan 13, 2021</div>
-            <div className="event-time">10:45</div>
+
+        {events.map((event) => (
+          <div className="event" key={event.id}>
+            <div className="event-date-wrapper">
+              <div className="event-date">{`${
+                monthsOfYear[event.date.getMonth()]
+              } ${event.date.getDate()} ${event.date.getFullYear()}`}</div>
+              <div className="event-time">{event.time}</div>
+            </div>
+            <div className="event-text">{event.text}</div>
+            <div className="event-buttons">
+              <i
+                className="bx bxs-edit-alt"
+                onClick={() => handleEditEvent(event)}
+              ></i>
+              <i
+                className="bx bxs-message-alt-x"
+                onClick={() => handleDeleteEvent(event.id)}
+              ></i>
+            </div>
           </div>
-          <div className="event-text">Dhrishan Dutta's Birthday</div>
-          <div className="event-buttons">
-            <i className="bx bxs-edit-alt"></i>
-            <i className="bx bxs-message-alt-x"></i>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
